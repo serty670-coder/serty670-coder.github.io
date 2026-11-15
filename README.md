@@ -1,1 +1,0 @@
-# midspot.github.io
