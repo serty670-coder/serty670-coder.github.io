@@ -181,37 +181,52 @@
         }
 
        window.addEventListener("DOMContentLoaded", async () => {
-    // 카카오맵 SDK가 정상 로드되었는지 확인하는 안전장치
+    const infoEl = document.getElementById("roomInfo");
+
+    // 1. 카카오맵 SDK 로드 체크
     if (typeof kakao !== 'undefined' && kakao.maps && kakao.maps.load) {
         kakao.maps.load(() => {
             initMap();
         });
     } else {
         console.error("카카오맵 SDK가 로드되지 않았습니다.");
-        // 필요시 스크립트를 동적으로 다시 불러오는 로직 추가 가능
+        if (infoEl) infoEl.innerText = "카카오맵 로드 실패. 새로고침 해주세요.";
+    }
+
+    // 2. 방 ID 확인
+    const currentRoomId = getCurrentRoomId();
+    if (!currentRoomId) {
+        if (infoEl) {
+            infoEl.innerText = "방 정보가 없습니다. 처음부터 시작해주세요.";
+            infoEl.style.color = "#e03131";
+        }
+        return;
+    }
+
+    // 3. Render 서버 콜드 스타트 안내 메시지 출력
+    if (infoEl) {
+        infoEl.innerText = "서버 연결 중 (무료 서버 특성상 최초 접속 시 최대 30초 소요)...";
+    }
+
+    try {
+        await getRoom(currentRoomId);
+        if (infoEl) {
+            infoEl.innerText = "방 ID: " + currentRoomId;
+            infoEl.style.color = "#2b8a3e";
+        }
+    } catch (err) {
+        if (infoEl) {
+            infoEl.innerText = "방 조회 실패: " + err.message;
+            infoEl.style.color = "#e03131";
+        }
+    }
+
+    try {
+        await refreshParticipants();
+    } catch (e) {
+        console.error("참여자 목록 로드 실패:", e);
     }
 });
-
-            currentRoomId = getCurrentRoomId();
-            const infoEl = document.getElementById("roomInfo");
-
-            if (!currentRoomId) {
-                infoEl.innerText = "방 정보가 없습니다. 처음부터 시작해주세요.";
-                infoEl.style.color = "#e03131";
-                return;
-            }
-
-            try {
-                await getRoom(currentRoomId);
-                infoEl.innerText = "방 ID: " + currentRoomId;
-            } catch (err) {
-                infoEl.innerText = "방 조회 실패: " + err.message;
-                infoEl.style.color = "#e03131";
-            }
-
-            await refreshParticipants();
-        });
-
         function execDaumPostcode() {
             new daum.Postcode({
                 oncomplete: function (data) {
