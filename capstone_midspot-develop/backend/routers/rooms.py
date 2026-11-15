@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from models import Room
-from db import rooms_db
+from db import rooms_db, commit_db  # commit_db 임포트 추가
 from services.cleanup import cleanup_expired_rooms
 
 router = APIRouter(prefix="/api/rooms", tags=["Rooms"])
@@ -10,9 +10,10 @@ router = APIRouter(prefix="/api/rooms", tags=["Rooms"])
 
 @router.post("", response_model=Room, status_code=201)
 def create_room():
-    room_id = str(uuid.uuid4())[:8]
+    room_id = str(uuid.uuid4()[:8])
     new_room = Room(room_id=room_id, created_at=datetime.now())
     rooms_db[room_id] = new_room
+    commit_db()  # 생성된 방을 JSON 파일에 즉시 영구 저장
     return new_room
 
 
