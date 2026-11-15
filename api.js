@@ -1,7 +1,7 @@
 // ============================================================
 // 공통 API 클라이언트 (백엔드 FastAPI와 통신)
 // ============================================================
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://capstone-midspot-1.onrender.com";
 
 function getRoomIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
