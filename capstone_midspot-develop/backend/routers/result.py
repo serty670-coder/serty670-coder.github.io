@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/rooms/{room_id}", tags=["Result"])
 CATEGORY_CODE = {
     "cafe": "CE7",
     "restaurant": "FD6",
-    "station": "SW8",  
+    "station_terminal": "SW8",
 }
 
 
@@ -26,18 +26,30 @@ async def get_result(
         raise HTTPException(status_code=400, detail="참여자가 2명 이상이어야 중간지점을 계산할 수 있습니다.")
 
     if category not in CATEGORY_CODE:
-        raise HTTPException(status_code=400, detail="cafe/restaurant/public 중 하나여야 합니다.")
+        raise HTTPException(status_code=400, detail="cafe/restaurant/station_terminal 중 하나여야 합니다.")
 
     mid = calculate_midpoint([(p.latitude, p.longitude) for p in people])
 
+    # 카카오 장소 검색 - 실패 시에도 중간지점은 반환 (API 키 누락 등 대응)
+    # 산술평균 중간지점이 상권 밖(빈 지대)에 떨어질 수 있어, 결과가 0건이면 반경을 넓혀 재검색함
+    places = []
+    search_error = None
+    used_radius = radius
     try:
         places = await search_places(
             lat=mid["latitude"],
             lng=mid["longitude"],
             category_code=CATEGORY_CODE[category],
-            radius=radius,
+            radius=used_radius,
         )
-        search_error = None
+        while not places and used_radius < 10000:
+            used_radius = min(used_radius * 2, 10000)
+            places = await search_places(
+                lat=mid["latitude"],
+                lng=mid["longitude"],
+                category_code=CATEGORY_CODE[category],
+                radius=used_radius,
+            )
     except Exception as e:
         places = []
         search_error = f"장소 검색 실패: {str(e)} (KAKAO_REST_API_KEY 확인 필요)"
@@ -47,7 +59,7 @@ async def get_result(
         "participant_count": len(people),
         "midpoint": mid,
         "category": category,
-        "radius": radius,
+        "radius": used_radius,
         "places": places,
         "search_error": search_error,
     }
