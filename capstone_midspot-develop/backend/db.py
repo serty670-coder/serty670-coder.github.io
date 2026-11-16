@@ -18,3 +18,8 @@ category_votes_db: dict[str, dict[str, str]] = {}
 
 # 방 별 장소 투표: room_id -> {participant_id: {"place_id", "place_name"}}
 place_votes_db: dict[str, dict[str, dict]] = {}
+
+# db.py 파일 안에 추가
+def commit_db():
+    # 필요한 저장/커밋 로직 (또는 pass만 해두어도 에러는 방지됩니다)
+    pass
