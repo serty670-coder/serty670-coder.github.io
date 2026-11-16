@@ -1,27 +1,20 @@
 # 인메모리 저장소 (공용). 요청 시 접근하는 모듈은 여기서 참조한다.
-import json
-import os
+from threading import RLock
 
-DB_FILE = "data.json"
+from models import Room
+from schemas import Participant
 
-def load_data():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {"rooms": {}, "participants": {}}
+# 여러 참여자가 동시에 투표해도 집계가 꼬이지 않도록 하는 공용 락
+db_lock = RLock()
 
-def save_data(data):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+# 방 목록: room_id -> Room
+rooms_db: dict[str, Room] = {}
 
-# 기존 메모리 DB를 파일 데이터와 연동
-_data = load_data()
-rooms_db = _data.setdefault("rooms", {})
-participants_db = _data.setdefault("participants", {})
+# 방 별 참여자 목록: room_id -> list[Participant]
+participants_db: dict[str, list[Participant]] = {}
 
-def commit_db():
-    """데이터가 변경될 때마다 호출하여 파일에 저장"""
-    save_data({"rooms": rooms_db, "participants": participants_db})
+# 방 별 카테고리 투표: room_id -> {participant_id: category}
+category_votes_db: dict[str, dict[str, str]] = {}
+
+# 방 별 장소 투표: room_id -> {participant_id: {"place_id", "place_name"}}
+place_votes_db: dict[str, dict[str, dict]] = {}
