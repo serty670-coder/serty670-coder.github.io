@@ -24,11 +24,41 @@
         </div>
     </div>
 
-    <!-- 페이지 이동을 위한 자바스크립트 추가 -->
+    <!-- 수정된 자바스크립트 코드 -->
     <script>
-        document.getElementById('createRoomBtn').addEventListener('click', function() {
-            // page2.html로 이동
-            window.location.href = 'page2.html';
+        // 만약 사용자가 공유된 링크(?room=XYZ)를 통해 index.html로 바로 접속했다면 즉시 page2.html로 넘겨줄 수도 있습니다.
+        const urlParams = new URLSearchParams(window.location.search);
+        const existingRoomId = urlParams.get('room');
+        if (existingRoomId) {
+            window.location.href = `page2.html?room=${existingRoomId}`;
+        }
+
+        // 모임 만들기 버튼 클릭 시 동작
+        document.getElementById('createRoomBtn').addEventListener('click', async function() {
+            try {
+                // ⚠️ 본인의 실제 Render 백엔드 주소로 변경해주세요 (끝에 슬래시(/) 제외)
+                const BACKEND_URL = 'https://YOUR-BACKEND-URL.onrender.com'; 
+
+                // 1. 백엔드에 새 방 생성 요청 (POST /api/rooms)
+                const response = await fetch(`${BACKEND_URL}/api/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('방 생성 실패');
+
+                const roomData = await response.json();
+                
+                // 2. 백엔드에서 생성된 room_id 추출 (routers/rooms.py 코드 기준 room_id 반환)
+                const roomId = roomData.room_id;
+
+                // 3. page2.html로 이동하면서 쿼리 파라미터로 방 ID 전달 (?room=abc123)
+                window.location.href = `page2.html?room=${roomId}`;
+
+            } catch (error) {
+                console.error('방 생성 중 오류 발생:', error);
+                alert('서버와 통신할 수 없습니다. 백엔드 서버 상태를 확인해 주세요.');
+            }
         });
     </script>
 </body>
