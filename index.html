@@ -37,7 +37,7 @@
         document.getElementById('createRoomBtn').addEventListener('click', async function() {
             try {
                 // ⚠️ 본인의 실제 Render 백엔드 주소로 변경해주세요 (끝에 슬래시(/) 제외)
-                const BACKEND_URL = 'https://YOUR-BACKEND-URL.onrender.com'; 
+                const BACKEND_URL = 'https://capstone-midspot-1.onrender.com'; 
 
                 // 1. 백엔드에 새 방 생성 요청 (POST /api/rooms)
                 const response = await fetch(`${BACKEND_URL}/api/rooms`, {
