@@ -184,21 +184,23 @@
             }
         }
 
-        async function onCategoryChange() {
-            const selected = document.querySelector('input[name="category"]:checked');
-            if (!selected) return;
-            if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+       async function onCategoryChange() {
+    const selected = document.querySelector('input[name="category"]:checked');
+    if (!selected) return;
+    if (!myParticipantId) { alert("출발지를 먼저 입력해주세요."); return; }
+    if (!currentRoomId) { alert("방 정보가 없습니다."); return; } // 방 ID 체크 추가
 
-            try {
-                await voteCategory(currentRoomId, {
-                    participant_id: myParticipantId,
-                    category: selected.value,
-                });
-                await refreshCategoryVotes();
-            } catch (err) {
-                alert("투표 실패: " + err.message);
-            }
-        }
+    try {
+        // 🛠️ 수정 포인트: voteCategory 함수의 첫 번째 인자에 currentRoomId를 명확히 전달
+        await voteCategory(currentRoomId, {
+            participant_id: myParticipantId,
+            category: selected.value, // "cafe", "restaurant", "public" 중 하나
+        });
+        await refreshCategoryVotes();
+    } catch (err) {
+        alert("투표 실패: " + err.message);
+    }
+}
 
         function goToResult() {
             if (!currentRoomId) { alert("방 정보가 없습니다."); return; }
