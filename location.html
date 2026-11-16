@@ -202,7 +202,7 @@
     }, 100);
 
     // 2. 방 ID 확인
-    const currentRoomId = getCurrentRoomId();
+    currentRoomId = getCurrentRoomId();
     if (!currentRoomId) {
         if (infoEl) {
             infoEl.innerText = "방 정보가 없습니다. 처음부터 시작해주세요.";
