@@ -46,7 +46,7 @@
                 localStorage.setItem("currentRoomId", roomId);
 
                 const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-                const roomUrl = `${baseUrl}location.html?room=${roomId}`;
+                const roomUrl = `${baseUrl}result.html?room=${roomId}`;
 
                 try {
                     await navigator.clipboard.writeText(roomUrl);
