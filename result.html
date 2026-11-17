@@ -33,7 +33,7 @@
             display: flex;
             flex: 1;
             gap: 20px;
-            height: calc(100vh - 60px);
+            min-height: 0;
         }
         #map {
             flex: 2.5;
@@ -44,6 +44,7 @@
         }
         .rank-panel {
             flex: 1;
+            min-width: 320px;
             height: 100%;
             background: #ffffff;
             padding: 24px;
@@ -59,21 +60,78 @@
             color: #444;
             margin-bottom: 12px;
         }
+        .rank-panel > div:first-child {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
         .rank-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
+            flex: 1;
+            min-height: 0;
             overflow-y: auto;
+            padding-right: 4px;
+        }
+        .mid-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transform: translateY(-6px);
+        }
+        .mid-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e03131;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 4px rgba(224, 49, 49, 0.25), 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+        .mid-label {
+            background: #e03131;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
         .rank-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
             padding: 14px 16px;
             border: 1px solid #ced4da;
             border-radius: 8px;
             background: #fff;
             font-size: 15px;
+        }
+        .rank-item > div:first-child {
+            flex: 1;
+            min-width: 0;
+        }
+        .rank-item > div:first-child > span:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .rank-item > div:first-child > span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .rank-item > div:last-child {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .rank-item a, .rank-item button {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .rank-item.top-choice {
             border-color: #4c6ef5;
@@ -117,6 +175,7 @@
     <div class="wrapper">
         <h2 style="margin-bottom: 10px;">최종 결과</h2>
         <div id="midpointInfo" style="font-size: 14px; color: #495057; margin-bottom: 12px; background: #e7f5ff; padding: 10px 14px; border-radius: 8px;">결과를 불러오는 중...</div>
+        <div id="fallbackNotice" style="display: none; font-size: 14px; color: #b35c00; margin-bottom: 12px; background: #fff4e6; padding: 10px 14px; border-radius: 8px;"></div>
 
         <div class="content-layout">
             <div id="map"></div>
@@ -136,13 +195,14 @@
 
     <div id="toast" class="toast">링크가 복사되었습니다!</div>
 
-    <script src="api.js"></script>
+    <script src="api.js?v=2"></script>
     <script>
         let currentRoomId = null;
         let myParticipantId = null;
         let places = [];
         let topPlaceId = null;
         let currentMidpoint = null;
+        let currentRadius = 0;
         let map = null;
         let markers = [];
         let placePollInterval = null; // 폴링 타이머 변수 추가
@@ -166,18 +226,37 @@
 
             const bounds = new kakao.maps.LatLngBounds();
 
-            if (midpoint && midpoint.latitude && midpoint.longitude) {
+            // 1. 중간지점 표시 (눈에 잘 띄는 커스텀 오버레이 + 검색 반경 원)
+            if (midpoint && Number.isFinite(midpoint.latitude) && Number.isFinite(midpoint.longitude)) {
                 const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
-                const midMarker = new kakao.maps.Marker({
+
+                if (currentRadius > 0) {
+                    const radiusCircle = new kakao.maps.Circle({
+                        map: map,
+                        center: midCoord,
+                        radius: currentRadius,
+                        strokeWeight: 2,
+                        strokeColor: '#e03131',
+                        strokeOpacity: 0.55,
+                        strokeStyle: 'dashed',
+                        fillColor: '#e03131',
+                        fillOpacity: 0.05,
+                    });
+                    markers.push(radiusCircle);
+                }
+
+                const midContent = document.createElement('div');
+                midContent.className = 'mid-overlay';
+                midContent.innerHTML = '<span class="mid-label">📍 중간지점</span><span class="mid-dot"></span>';
+
+                const midOverlay = new kakao.maps.CustomOverlay({
                     map: map,
                     position: midCoord,
+                    content: midContent,
+                    yAnchor: 1,
+                    zIndex: 10,
                 });
-                
-                const midWindow = new kakao.maps.InfoWindow({
-                    content: '<div style="padding:5px;font-size:12px;font-weight:bold;color:#4c6ef5;">📍 중간지점</div>'
-                });
-                midWindow.open(map, midMarker);
-                markers.push(midMarker);
+                markers.push(midOverlay);
                 bounds.extend(midCoord);
             }
 
@@ -205,9 +284,14 @@
         }
 
         window.addEventListener("DOMContentLoaded", async () => {
-            kakao.maps.load(() => {
-                initMap();
-            });
+            // 카카오 지도 SDK 로드 성공 시에만 지도 초기화 (실패해도 결과 로딩은 계속됨)
+            if (typeof kakao !== "undefined" && kakao.maps) {
+                kakao.maps.load(() => {
+                    initMap();
+                });
+            } else {
+                console.warn("카카오 지도 SDK 로드 실패 - 지도 없이 결과만 표시합니다.");
+            }
 
             currentRoomId = getCurrentRoomId();
             myParticipantId = getMyParticipantId();
@@ -240,11 +324,20 @@
             try {
                 const result = await getResult(currentRoomId, category, 1000);
                 currentMidpoint = result.midpoint;
+                currentRadius = result.radius || 0;
                 places = result.places || [];
 
                 document.getElementById("midpointInfo").innerText =
                     "📍 중간지점: 위도 " + currentMidpoint.latitude.toFixed(5) + ", 경도 " + currentMidpoint.longitude.toFixed(5) +
-                    "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ")";
+                    "  (참여자 " + result.participant_count + "명, 카테고리: " + result.category + ", 반경: " + (result.radius/1000).toFixed(1) + "km)";
+
+                const noticeEl = document.getElementById("fallbackNotice");
+                if (result.message) {
+                    noticeEl.innerText = "ℹ️ " + result.message;
+                    noticeEl.style.display = "block";
+                } else {
+                    noticeEl.style.display = "none";
+                }
 
                 await refreshPlaceVotes();
             } catch (err) {
@@ -255,7 +348,12 @@
         async function refreshPlaceVotes() {
             const rankList = document.getElementById("rankList");
 
-            if (places.length === 0) return;
+            if (places.length === 0) {
+                // 장소가 없어도 중간지점은 지도에 표시합니다.
+                updateResultMap(currentMidpoint, [], null);
+                rankList.innerHTML = '<div style="text-align: center; color: #868e96; padding: 30px;">주변에 검색된 장소가 없습니다.</div>';
+                return;
+            }
 
             let votes = {};
             let top = null;
