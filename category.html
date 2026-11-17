@@ -136,7 +136,7 @@
                     <!-- 백엔드 허용값인 station_terminal로 맞춤 -->
                     <label class="checkbox-item">
                         <span class="item-label">
-                            <input type="radio" name="category" value="station_station" onchange="onCategoryChange()"> 지하철역
+                            <input type="radio" name="category" value="station" onchange="onCategoryChange()"> 지하철역
                         </span>
                         <span class="vote-count" id="count-station_">0표</span>
                     </label>
@@ -190,7 +190,7 @@
                 const result = await getCategoryVotes(currentRoomId);
                 const counts = result.counts || {};
                 // 백엔드 키값과 일치하는 cafe, restaurant, station_terminal 순회
-                for (const cat of ["cafe", "restaurant", "station_terminal"]) {
+                for (const cat of ["cafe", "restaurant", "station"]) {
                     const countEl = document.getElementById("count-" + cat);
                     if (countEl) {
                         countEl.innerText = (counts[cat] || 0) + "표";
