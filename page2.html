@@ -26,22 +26,25 @@
 
         <!-- 방 생성 및 링크 복사 버튼 -->
         <div class="form-section">
-            <button type="button" class="create-btn" onclick="createRoomAndCopy()" style="background-color: #fee500; color: #333; font-weight: bold; margin-bottom: 12px; cursor: pointer;">
+            <button type="button" id="createRoomBtn" class="create-btn" onclick="createRoomAndCopy()" style="background-color: #fee500; color: #333; font-weight: bold; margin-bottom: 12px; cursor: pointer;">
                 📋 방 만들기 및 링크 복사하기
             </button>
         </div>
     </div>
 
     <!-- 방 생성 및 링크 복사 스크립트 -->
-    <script src="api.js?v=2"></script>
+    <script src="api.js?v=3"></script>
     <script>
         async function createRoomAndCopy() {
-            const btn = event.currentTarget;
+            const btn = document.getElementById("createRoomBtn");
             btn.disabled = true;
             btn.innerText = "방 생성 중...";
 
             try {
                 const room = await createRoom();
+                console.log("생성된 방:", room);
+                console.log("저장된 토큰:", localStorage.getItem("hostToken:" + room.room_id));
+
                 const roomId = room.room_id;
                 localStorage.setItem("currentRoomId", roomId);
 
