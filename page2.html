@@ -33,7 +33,7 @@
     </div>
 
     <!-- 방 생성 및 링크 복사 스크립트 -->
-    <script src="api.js?v=3"></script>
+    <script src="api.js?v=4"></script>
     <script>
         async function createRoomAndCopy() {
             const btn = document.getElementById("createRoomBtn");
@@ -42,8 +42,8 @@
 
             try {
                 const room = await createRoom();
-                console.log("생성된 방:", room);
-                console.log("저장된 토큰:", localStorage.getItem("hostToken:" + room.room_id));
+                alert("room: " + JSON.stringify(room));
+                alert("saved token: " + localStorage.getItem("hostToken:" + room.room_id));
 
                 const roomId = room.room_id;
                 localStorage.setItem("currentRoomId", roomId);
