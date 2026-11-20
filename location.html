@@ -38,19 +38,21 @@
         }
         .control-panel {
             flex: 1;
+            min-width: 320px;
             height: 100%;
             background: #ffffff;
-            padding: 30px;
+            padding: 28px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            gap: 16px;
             overflow-y: auto;
         }
         h2 {
             font-size: 24px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             color: #111;
         }
         .section-title {
@@ -60,34 +62,62 @@
             margin-bottom: 8px;
         }
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         input[type="text"] {
             width: 100%;
-            padding: 14px 16px;
+            padding: 13px 15px;
             border: 1px solid #ced4da;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             outline: none;
             transition: border-color 0.2s;
         }
         input[type="text"]:focus {
             border-color: #4c6ef5;
         }
-        .next-btn {
+        .action-btn {
             width: 100%;
-            padding: 16px;
+            min-height: 52px;
+            padding: 12px 16px;
             background-color: #4c6ef5;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
+            line-height: 1.35;
+            word-break: keep-all;
+            overflow-wrap: break-word;
             cursor: pointer;
             transition: background-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
-        .next-btn:hover {
+        .action-btn:hover {
             background-color: #3b5bdb;
+        }
+        .action-btn .sub-label {
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        .save-btn {
+            background-color: #51cf66;
+            margin-bottom: 16px;
+        }
+        .save-btn:hover {
+            background-color: #40c057;
+        }
+        .host-badge {
+            display: inline-block;
+            font-size: 12px;
+            color: #868e96;
+            margin-top: 4px;
         }
     </style>
     <!-- 카카오 우편번호(주소) 검색 API -->
@@ -103,9 +133,10 @@
         <div class="control-panel">
             <div>
                 <h2>출발지 입력</h2>
-                <div class="section-title" id="roomInfo" style="margin-bottom: 12px; color: #868e96;">방 불러오는 중...</div>
+                <div class="section-title" id="roomInfo" style="margin-bottom: 4px; color: #868e96;">방 불러오는 중...</div>
+                <div class="host-badge" id="hostStatus"></div>
 
-                <div class="input-group">
+                <div class="input-group" style="margin-top: 14px;">
                     <div class="section-title">이름</div>
                     <input type="text" id="userName" placeholder="이름을 입력하세요">
                 </div>
@@ -113,12 +144,12 @@
                 <div class="input-group">
                     <div class="section-title">출발 주소</div>
                     <div style="display: flex; gap: 8px;">
-                        <input type="text" id="userAddress" placeholder="주소 검색 버튼을 눌러주세요" readonly style="flex: 1;">
-                        <button type="button" onclick="execDaumPostcode()" style="padding: 14px 16px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; white-space: nowrap;">주소 검색</button>
+                        <input type="text" id="userAddress" placeholder="주소 검색 버튼을 눌러주세요" readonly style="flex: 1; min-width: 0;">
+                        <button type="button" onclick="execDaumPostcode()" style="padding: 12px 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; white-space: nowrap; flex-shrink: 0;">주소 검색</button>
                     </div>
                 </div>
 
-                <button class="next-btn" id="saveBtn" onclick="saveParticipant()" style="background-color: #51cf66; margin-bottom: 16px;">💾 내 출발지 저장</button>
+                <button type="button" class="action-btn save-btn" id="saveBtn" onclick="saveParticipant()">💾 내 출발지 저장</button>
 
                 <div class="input-group">
                     <div class="section-title">참여 멤버 (<span id="participantCount">0</span>명)</div>
@@ -128,20 +159,31 @@
                 </div>
             </div>
 
-            <button class="next-btn" onclick="goToCategory()">투표하러 가기 (최소 2명 필요)</button>
+            <button type="button" class="action-btn" onclick="goToCategory()">
+                <span>투표하러 가기</span>
+                <span class="sub-label">최소 2명 필요</span>
+            </button>
         </div>
     </div>
 
-    <script src="api.js?v=2"></script>
+    <script src="api.js?v=3"></script>
     <script>
         let currentRoomId = null;
         let map = null;
         let markers = [];
         let infowindows = [];
-        let participantPollInterval = null; // 폴링 타이머 변수
-        let lastParticipantCount = -1;      // 인원수 변화 감지용 변수
+        let participantPollInterval = null;
+        let lastParticipantCount = -1;
 
-        // 지도 초기화 함수
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         function initMap(lat = 37.566826, lng = 126.978656) {
             const container = document.getElementById('map');
             const options = {
@@ -151,11 +193,9 @@
             map = new kakao.maps.Map(container, options);
         }
 
-        // 참여자 목록을 바탕으로 지도 중심 이동 및 마커 표시
         function updateMapMarkers(people, shouldFitBounds = false) {
             if (!map) return;
 
-            // 기존 마커 및 인포윈도우 제거
             markers.forEach(marker => marker.setMap(null));
             infowindows.forEach(iw => iw.close());
             markers = [];
@@ -171,9 +211,9 @@
                     map: map,
                     position: coords
                 });
-                
+
                 const infowindow = new kakao.maps.InfoWindow({
-                    content: `<div style="padding:5px;font-size:12px;">👤 ${p.nickname}</div>`
+                    content: `<div style="padding:5px;font-size:12px;">👤 ${escapeHtml(p.nickname)}</div>`
                 });
                 infowindow.open(map, marker);
 
@@ -182,7 +222,6 @@
                 bounds.extend(coords);
             });
 
-            // 인원 수가 변했거나 최초 로드일 때만 지도 범위 자동 조절
             if (shouldFitBounds) {
                 map.setBounds(bounds);
             }
@@ -192,7 +231,6 @@
             if (typeof kakao !== "undefined" && kakao.maps) {
                 kakao.maps.load(() => {
                     initMap();
-                    // 지도 로드 완료 후 마커 다시 그리기
                     if (currentRoomId) refreshParticipants(true);
                 });
             } else {
@@ -201,6 +239,7 @@
 
             currentRoomId = getCurrentRoomId();
             const infoEl = document.getElementById("roomInfo");
+            const hostStatusEl = document.getElementById("hostStatus");
 
             if (!currentRoomId) {
                 infoEl.innerText = "방 정보가 없습니다. 처음부터 시작해주세요.";
@@ -210,23 +249,24 @@
 
             try {
                 await getRoom(currentRoomId);
-                infoEl.innerText = "방 ID: " + currentRoomId + (isHost(currentRoomId) ? "  👑 방장" : "");
+                const host = isHost(currentRoomId);
+                infoEl.innerText = "방 ID: " + currentRoomId + (host ? "  👑 방장" : "");
+                hostStatusEl.innerText = host
+                    ? "방장 권한이 확인되었습니다. 참여자 삭제가 가능합니다."
+                    : "현재 브라우저에 이 방의 방장 토큰이 없습니다. (방을 만든 브라우저에서 접속해야 삭제 버튼이 표시됩니다.)";
             } catch (err) {
                 infoEl.innerText = "방 조회 실패: " + err.message;
                 infoEl.style.color = "#e03131";
             }
 
-            // 1. 최초 참여자 목록 로드
             await refreshParticipants(true);
 
-            // 2. [폴링 기능] 3초마다 자동으로 참여자 목록 갱신
             if (participantPollInterval) clearInterval(participantPollInterval);
             participantPollInterval = setInterval(async () => {
                 await refreshParticipants(false);
             }, 3000);
         });
 
-        // 페이지 이탈 시 폴링 타이머 정리
         window.addEventListener("beforeunload", () => {
             if (participantPollInterval) clearInterval(participantPollInterval);
         });
@@ -270,7 +310,7 @@
                     longitude: geo.x,
                 });
 
-                localStorage.setItem("myParticipantId", participant.participant_id);
+                localStorage.setItem("myParticipantId", participant.participant_id ?? participant.id);
                 alert(userName + "님의 출발지가 저장되었습니다!");
 
                 document.getElementById("userName").value = "";
@@ -293,7 +333,6 @@
                 const people = await getParticipants(currentRoomId);
                 countEl.innerText = people.length;
 
-                // 이전보다 참여자 수가 달라졌거나 강제 갱신일 때만 지도 범위 재조정
                 const countChanged = (lastParticipantCount !== people.length);
                 lastParticipantCount = people.length;
 
@@ -304,19 +343,27 @@
                     return;
                 }
 
-                listEl.innerHTML = people.map(p =>
-                    '<div style="padding: 12px 14px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; font-size: 14px;">' +
-                    '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
-                    '<div style="font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ' + p.nickname + '</div>' +
-                    (isHost(currentRoomId)
-                        ? '<button type="button" onclick="removeParticipant(\'' + p.participant_id + '\')" style="flex-shrink: 0; padding: 4px 10px; border: 1px solid #ffa8a8; border-radius: 6px; background: #fff; color: #e03131; font-size: 12px; cursor: pointer; white-space: nowrap;">삭제</button>'
-                        : '') +
-                    '</div>' +
-                    '<div style="color: #666; font-size: 13px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ' + p.address_name + '</div>' +
-                    '</div>'
-                ).join("");
+                const host = isHost(currentRoomId);
+
+                listEl.innerHTML = people.map(p => {
+                    const pid = p.participant_id ?? p.id;
+                    const safePidAttr = escapeHtml(pid);
+                    const safeName = escapeHtml(p.nickname);
+                    const safeAddr = escapeHtml(p.address_name);
+
+                    return (
+                        '<div style="padding: 12px 14px; border: 1px solid #dee2e6; border-radius: 8px; background: #f8f9fa; font-size: 14px;">' +
+                        '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
+                        '<div style="font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ' + safeName + '</div>' +
+                        (host
+                            ? '<button type="button" data-pid="' + safePidAttr + '" onclick="removeParticipant(this.dataset.pid)" style="flex-shrink: 0; padding: 4px 10px; border: 1px solid #ffa8a8; border-radius: 6px; background: #fff; color: #e03131; font-size: 12px; cursor: pointer; white-space: nowrap;">삭제</button>'
+                            : '') +
+                        '</div>' +
+                        '<div style="color: #666; font-size: 13px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ' + safeAddr + '</div>' +
+                        '</div>'
+                    );
+                }).join("");
             } catch (err) {
-                // 폴링 중 일시적 네트워크 오류로 기존 목록이 지워지지 않도록 콘솔에만 출력
                 console.error("참가자 목록 조회 실패:", err);
             }
         }
@@ -325,7 +372,7 @@
             if (!confirm("이 참여자의 출발지 정보를 삭제할까요?")) return;
             try {
                 await deleteParticipant(currentRoomId, participantId);
-                if (getMyParticipantId() === participantId) {
+                if (getMyParticipantId() === String(participantId)) {
                     localStorage.removeItem("myParticipantId");
                 }
                 await refreshParticipants(true);
