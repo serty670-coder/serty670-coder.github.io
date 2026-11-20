@@ -119,6 +119,16 @@ async def get_result(
     return {
         "room_id": room_id,
         "participant_count": len(people),
+        "participants": [
+            {
+                "participant_id": p.participant_id,
+                "nickname": p.nickname,
+                "address_name": p.address_name,
+                "latitude": p.latitude,
+                "longitude": p.longitude,
+            }
+            for p in people
+        ],
         "midpoint": mid,
         "category": category,
         "radius": used_radius,
