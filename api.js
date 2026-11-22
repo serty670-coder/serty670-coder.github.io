@@ -37,33 +37,25 @@ async function apiRequest(method, path, body = null, extraHeaders = {}) {
 async function createRoom() {
     const room = await apiRequest("POST", "/api/rooms");
     
-    // [디버깅 추가] 서버에서 온 응답 확인
-    console.log("서버 응답 데이터:", room);
-    
-    // 서버 응답의 필드명을 확인하여 안전하게 저장합니다.
-    // room_id가 없으면 id를 사용합니다.
-    const rId = room.room_id || room.id;
+    // [수정 핵심] 서버 응답에서 room_id와 host_token을 정확하게 추출합니다.
+    const rId = room.room_id || room.id; 
     const rToken = room.host_token;
 
     if (rId && rToken) {
         const storageKey = "hostToken:" + rId;
         localStorage.setItem(storageKey, rToken);
-        alert(`✅ 방 생성 성공!\n저장된 키: ${storageKey}\n토큰 일부: ${rToken.substring(0,5)}...`);
+        // 방 생성 시 현재 방 ID도 저장해둡니다 (이후 페이지 이동 대비)
+        localStorage.setItem("currentRoomId", rId);
+        console.log("방 생성 및 토큰 저장 성공:", storageKey, rToken);
     } else {
-        alert(`❌ 방 생성은 됐으나 토큰 저장 실패!\n응답내용: ${JSON.stringify(room)}`);
+        console.error("방 생성 데이터 형식 오류:", room);
     }
-    
     return room;
 }
 
 function getHostToken(roomId) {
     if (!roomId) return null;
-    const key = "hostToken:" + roomId;
-    const token = localStorage.getItem(key);
-    
-    // [디버깅 추가] 토큰을 찾을 때의 로그
-    console.log("토큰 조회 시도 - Key:", key, "Result:", token);
-    return token;
+    return localStorage.getItem("hostToken:" + roomId);
 }
 
 function isHost(roomId) {
@@ -73,17 +65,11 @@ function isHost(roomId) {
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
     
-    alert(
-        "🔍 [삭제 시도 디버깅]\n" +
-        "접속한 Room ID: " + roomId + "\n" +
-        "찾으려는 Key: hostToken:" + roomId + "\n" +
-        "토큰 상태: " + (token ? "✅ 있음 (" + token.substring(0, 5) + "...)" : "❌ 없음 (null)")
-    );
-
     if (!token) {
         throw new Error("방장 토큰이 없습니다. 방을 만든 브라우저인지 확인하세요.");
     }
 
+    // 서버의 x_host_token: str = Header() 에 맞게 X-Host-Token 사용
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
