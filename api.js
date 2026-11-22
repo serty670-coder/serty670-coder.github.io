@@ -1,5 +1,5 @@
 // ============================================================
-// 공통 API 클라이언트 (백엔드 FastAPI와 통신)
+// api.js - 최종 디버깅 버전
 // ============================================================
 const API_BASE = "https://capstone-midspot-1.onrender.com";
 
@@ -37,23 +37,17 @@ async function apiRequest(method, path, body = null, extraHeaders = {}) {
 async function createRoom() {
     const room = await apiRequest("POST", "/api/rooms");
     
-    // [강력한 디버깅] 서버가 준 데이터를 통째로 보여줍니다. 
-    // 여기서 host_token이 어떤 이름으로 들어있는지 확인해야 합니다.
-    console.log("DEBUG: Raw Server Response:", room);
-    
-    // 1. 모든 가능한 토큰 필드명을 뒤집어서 찾습니다.
-    const rToken = room.host_token || room.token || room.hostToken || room.token_id;
-    // 2. 모든 가능한 ID 필드명을 뒤집어서 찾습니다.
+    // [핵심] 서버가 주는 데이터를 가공 없이 통째로 alert로 띄웁니다.
+    // 이 알림창에 뜨는 내용을 저에게 알려주시면 바로 해결됩니다.
+    alert("🚨 [서버 응답 데이터 확인]\n" + JSON.stringify(room, null, 2));
+
     const rId = room.room_id || room.id;
+    const rToken = room.host_token || room.token || room.token_id;
 
     if (rId && rToken) {
         const storageKey = "hostToken:" + rId;
         localStorage.setItem(storageKey, rToken);
         localStorage.setItem("currentRoomId", rId);
-        console.log("✅ [SUCCESS] Saved to LocalStorage:", storageKey, rToken);
-    } else {
-        // 여기서 alert가 뜨면, 그 안에 찍힌 JSON 내용을 저에게 알려주세요.
-        alert("❌ [FAIL] 토큰을 못 찾음!\n서버 응답: " + JSON.stringify(room));
     }
     
     return room;
@@ -71,7 +65,6 @@ function isHost(roomId) {
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
     if (!token) throw new Error("방장 토큰이 없습니다.");
-
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
