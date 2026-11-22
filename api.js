@@ -1,4 +1,4 @@
-const API_BASE = "https://capstone-midspot-1.onrender.com";
+const API_BASE = "https://serty670-coder-github-io.onrender.com";
 
 function getRoomIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
