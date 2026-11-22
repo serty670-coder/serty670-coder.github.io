@@ -35,52 +35,57 @@
     <!-- 방 생성 및 링크 복사 스크립트 -->
     <script src="api.js?v=99"></script>
     <script>
-    async function createRoomAndCopy() {
-        const btn = document.getElementById("createRoomBtn");
-        btn.disabled = true;
-        btn.innerText = "방 생성 중...";
-
-        try {
-            // 1. 방을 생성합니다.
-            const room = await createRoom();
-            
-            // 2. 서버가 주는 실제 ID와 토큰을 변수에 담습니다. (중요!)
-            // 서버 응답이 room_id인지 id인지 모르므로 둘 다 체크합니다.
-            const roomId = room.room_id || room.id;
-            const hostToken = room.host_token;
-
-            // 디버깅용 alert (이제 null이 뜨면 안 됩니다)
-            alert("방 생성 확인\nID: " + roomId + "\n토큰: " + (hostToken ? hostToken.substring(0,5) + "..." : "없음"));
-
-            if (!roomId || !hostToken) {
-                throw new Error("서버로부터 방 정보(ID 또는 토큰)를 받지 못했습니다.");
-            }
-
-            // 3. 현재 브라우저의 localStorage에 명시적으로 저장합니다.
-            localStorage.setItem("currentRoomId", roomId);
-            localStorage.setItem("hostToken:" + roomId, hostToken);
-
-            // 4. 링크 생성 및 복사
-            const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-            const roomUrl = `${baseUrl}location.html?room=${roomId}`;
+        async function createRoomAndCopy() {
+            const btn = document.getElementById("createRoomBtn");
+            btn.disabled = true;
+            btn.innerText = "방 생성 중...";
 
             try {
-                await navigator.clipboard.writeText(roomUrl);
-                alert("방 링크가 복사되었습니다! 친구들에게 공유해주세요.\n출발지 입력 페이지로 이동합니다.");
+                // 1. 방 생성 호출
+                const room = await createRoom();
+                
+                // 2. [핵-심] 서버 응답에서 ID와 토큰을 안전하게 추출
+                // 서버가 room_id를 주는지 id를 주는지 모르므로 둘 다 체크합니다.
+                const roomId = room.room_id || room.id;
+                const hostToken = room.host_token;
+
+                // [디버깅용 alert] 이 창에서 ID와 토큰이 제대로 보이는지 꼭 확인하세요!
+                alert(
+                    "✅ 방 생성 확인\n" +
+                    "ID: " + (roomId || "찾을 수 없음") + "\n" +
+                    "토큰: " + (hostToken ? hostToken.substring(0, 5) + "..." : "없음")
+                );
+
+                if (!roomId || !hostToken) {
+                    throw new Error("서버로부터 방 정보(ID 또는 토큰)를 받지 못했습니다. 응답값: " + JSON.stringify(room));
+                }
+
+                // 3. [핵-심] 브라우저에 데이터 강제 저장
+                // 나중에 삭제할 때 getHostToken(roomId)가 이 키를 찾아야 합니다.
+                localStorage.setItem("currentRoomId", roomId);
+                localStorage.setItem("hostToken:" + roomId, hostToken);
+
+                // 4. 링크 생성 및 복사
+                const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+                const roomUrl = `${baseUrl}location.html?room=${roomId}`;
+
+                try {
+                    await navigator.clipboard.writeText(roomUrl);
+                    alert("방 링크가 복사되었습니다! 친구들에게 공유해주세요.\n출발지 입력 페이지로 이동합니다.");
+                } catch (err) {
+                    alert("링크 복사에 실패했지만 방은 생성되었습니다.\n공유 링크: " + roomUrl);
+                }
+
+                // 5. 생성된 방의 입력 페이지로 이동
+                window.location.href = roomUrl;
+
             } catch (err) {
-                alert("링크 복사에 실패했지만 방은 생성되었습니다.\n공유 링크: " + roomUrl);
+                console.error("Error during creation:", err);
+                alert("방 생성 실패: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "📋 방 만들기 및 링크 복사하기";
             }
-
-            // 5. 페이지 이동
-            window.location.href = roomUrl;
-
-        } catch (err) {
-            console.error(err);
-            alert("방 생성 실패: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "📋 방 만들기 및 링크 복사하기";
         }
-    }
-</script>
+    </script>
 </body>
 </html>
