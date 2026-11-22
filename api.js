@@ -53,17 +53,19 @@ function isHost(roomId) {
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
     
-    // 디버깅용 로그 (문제가 생기면 F12 콘솔에서 확인하세요)
-    console.log("--- 삭제 시도 디버깅 ---");
-    console.log("Room ID:", roomId);
-    console.log("Token 확인:", token ? "있음" : "없음");
+    // [모바일 디버깅용 alert 추가] 
+    // 이 창이 뜨면 'Token: 없음'인지 'Token: 문자열'인지 확인해주세요.
+    alert(
+        "🔍 [디버깅 확인]\n" +
+        "방 ID: " + roomId + "\n" +
+        "토큰 상태: " + (token ? "✅ 있음 (" + token.substring(0, 5) + "...)" : "❌ 없음 (null)")
+    );
 
     if (!token) {
         throw new Error("방장 토큰이 없습니다. 방을 만든 브라우저인지 확인하세요.");
     }
 
-    // [수정 완료] 서버의 'x_host_token: str = Header()' 설정에 맞게 
-    // 'X-Host-Token' 헤더를 사용하여 토큰을 전달합니다.
+    // 서버의 x_host_token: str = Header() 설정에 맞춰 정확히 'X-Host-Token' 헤더를 사용합니다.
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
