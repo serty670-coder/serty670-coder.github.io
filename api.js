@@ -53,11 +53,13 @@ function isHost(roomId) {
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
     if (!token) throw new Error("방장만 참여자를 삭제할 수 있습니다.");
+    
+    // [수정됨] 서버가 요구하는 표준 인증 헤더 형식(Authorization: Bearer <token>)을 사용합니다.
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
         null,
-        { "X-Host-Token": token }
+        { "Authorization": `Bearer ${token}` }
     );
 }
 
