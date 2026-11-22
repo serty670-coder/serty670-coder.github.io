@@ -9,7 +9,6 @@ function getRoomIdFromUrl() {
 }
 
 function getCurrentRoomId() {
-    // 공유 링크의 방 ID가 브라우저에 남은 이전 방 ID보다 우선합니다.
     return getRoomIdFromUrl() || localStorage.getItem("currentRoomId");
 }
 
@@ -37,13 +36,34 @@ async function apiRequest(method, path, body = null, extraHeaders = {}) {
 
 async function createRoom() {
     const room = await apiRequest("POST", "/api/rooms");
-    // 방을 만든 브라우저에만 방장 토큰을 보관합니다.
-    if (room.host_token) localStorage.setItem("hostToken:" + room.room_id, room.host_token);
+    
+    // [디버깅 추가] 서버에서 온 응답 확인
+    console.log("서버 응답 데이터:", room);
+    
+    // 서버 응답의 필드명을 확인하여 안전하게 저장합니다.
+    // room_id가 없으면 id를 사용합니다.
+    const rId = room.room_id || room.id;
+    const rToken = room.host_token;
+
+    if (rId && rToken) {
+        const storageKey = "hostToken:" + rId;
+        localStorage.setItem(storageKey, rToken);
+        alert(`✅ 방 생성 성공!\n저장된 키: ${storageKey}\n토큰 일부: ${rToken.substring(0,5)}...`);
+    } else {
+        alert(`❌ 방 생성은 됐으나 토큰 저장 실패!\n응답내용: ${JSON.stringify(room)}`);
+    }
+    
     return room;
 }
 
 function getHostToken(roomId) {
-    return localStorage.getItem("hostToken:" + roomId);
+    if (!roomId) return null;
+    const key = "hostToken:" + roomId;
+    const token = localStorage.getItem(key);
+    
+    // [디버깅 추가] 토큰을 찾을 때의 로그
+    console.log("토큰 조회 시도 - Key:", key, "Result:", token);
+    return token;
 }
 
 function isHost(roomId) {
@@ -53,11 +73,10 @@ function isHost(roomId) {
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
     
-    // [모바일 디버깅용 alert 추가] 
-    // 이 창이 뜨면 'Token: 없음'인지 'Token: 문자열'인지 확인해주세요.
     alert(
-        "🔍 [디버깅 확인]\n" +
-        "방 ID: " + roomId + "\n" +
+        "🔍 [삭제 시도 디버깅]\n" +
+        "접속한 Room ID: " + roomId + "\n" +
+        "찾으려는 Key: hostToken:" + roomId + "\n" +
         "토큰 상태: " + (token ? "✅ 있음 (" + token.substring(0, 5) + "...)" : "❌ 없음 (null)")
     );
 
@@ -65,7 +84,6 @@ async function deleteParticipant(roomId, participantId) {
         throw new Error("방장 토큰이 없습니다. 방을 만든 브라우저인지 확인하세요.");
     }
 
-    // 서버의 x_host_token: str = Header() 설정에 맞춰 정확히 'X-Host-Token' 헤더를 사용합니다.
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
