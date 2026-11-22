@@ -57,12 +57,11 @@ def _tally(votes: dict) -> dict:
     }
 
 
-router.post("/category-votes")
+@router.post("/category-votes")
 def vote_category(room_id: str, data: CategoryVote):
     _check(room_id)
     if data.category not in ALLOWED:
-       # 에러 메시지도 함께 업데이트해줘야 친절합니다.
-       raise HTTPException(status_code=400, detail="cafe/restaurant/public/station 중 하나여야 합니다.")
+        raise HTTPException(status_code=400, detail="cafe, restaurant, station 중 하나여야 합니다.")
     _check_participant(room_id, data.participant_id)
     with db_lock:
         category_votes_db.setdefault(room_id, {})[data.participant_id] = data.category
