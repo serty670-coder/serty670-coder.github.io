@@ -52,14 +52,23 @@ function isHost(roomId) {
 
 async function deleteParticipant(roomId, participantId) {
     const token = getHostToken(roomId);
-    if (!token) throw new Error("방장만 참여자를 삭제할 수 있습니다.");
     
-    // [수정됨] 서버가 요구하는 표준 인증 헤더 형식(Authorization: Bearer <token>)을 사용합니다.
+    // 디버깅용 로그 (문제가 생기면 F12 콘솔에서 확인하세요)
+    console.log("--- 삭제 시도 디버깅 ---");
+    console.log("Room ID:", roomId);
+    console.log("Token 확인:", token ? "있음" : "없음");
+
+    if (!token) {
+        throw new Error("방장 토큰이 없습니다. 방을 만든 브라우저인지 확인하세요.");
+    }
+
+    // [수정 완료] 서버의 'x_host_token: str = Header()' 설정에 맞게 
+    // 'X-Host-Token' 헤더를 사용하여 토큰을 전달합니다.
     return await apiRequest(
         "DELETE",
         `/api/rooms/${roomId}/participants/${participantId}`,
         null,
-        { "Authorization": `Bearer ${token}` }
+        { "X-Host-Token": token }
     );
 }
 
