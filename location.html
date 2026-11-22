@@ -166,7 +166,7 @@
         </div>
     </div>
 
-    <script src="api.js?v=3"></script>
+    <script src="api.js?v=100"></script>
     <script>
         let currentRoomId = null;
         let map = null;
@@ -249,11 +249,8 @@
 
             try {
                 await getRoom(currentRoomId);
-                const host = isHost(currentRoomId);
-                infoEl.innerText = "방 ID: " + currentRoomId + (host ? "  👑 방장" : "");
-                hostStatusEl.innerText = host
-                    ? "방장 권한이 확인되었습니다. 참여자 삭제가 가능합니다."
-                    : "현재 브라우저에 이 방의 방장 토큰이 없습니다. (방을 만든 브라우저에서 접속해야 삭제 버튼이 표시됩니다.)";
+                infoEl.innerText = "방 ID: " + currentRoomId;
+                hostStatusEl.innerText = "참여 멤버의 출발지 정보를 누구나 삭제할 수 있습니다.";
             } catch (err) {
                 infoEl.innerText = "방 조회 실패: " + err.message;
                 infoEl.style.color = "#e03131";
