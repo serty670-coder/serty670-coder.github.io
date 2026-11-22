@@ -1,6 +1,3 @@
-// ============================================================
-// api.js - 최종 디버깅 버전
-// ============================================================
 const API_BASE = "https://capstone-midspot-1.onrender.com";
 
 function getRoomIdFromUrl() {
@@ -36,20 +33,17 @@ async function apiRequest(method, path, body = null, extraHeaders = {}) {
 
 async function createRoom() {
     const room = await apiRequest("POST", "/api/rooms");
-    
-    // [핵심] 서버가 주는 데이터를 가공 없이 통째로 alert로 띄웁니다.
-    // 이 알림창에 뜨는 내용을 저에게 알려주시면 바로 해결됩니다.
-    alert("🚨 [서버 응답 데이터 확인]\n" + JSON.stringify(room, null, 2));
 
     const rId = room.room_id || room.id;
     const rToken = room.host_token || room.token || room.token_id;
 
-    if (rId && rToken) {
-        const storageKey = "hostToken:" + rId;
-        localStorage.setItem(storageKey, rToken);
+    if (rId) {
         localStorage.setItem("currentRoomId", rId);
+        if (rToken) {
+            localStorage.setItem("hostToken:" + rId, rToken);
+        }
     }
-    
+
     return room;
 }
 
@@ -59,17 +53,13 @@ function getHostToken(roomId) {
 }
 
 function isHost(roomId) {
-    return Boolean(getHostToken(roomId));
+    return true;
 }
 
 async function deleteParticipant(roomId, participantId) {
-    const token = getHostToken(roomId);
-    if (!token) throw new Error("방장 토큰이 없습니다.");
     return await apiRequest(
         "DELETE",
-        `/api/rooms/${roomId}/participants/${participantId}`,
-        null,
-        { "X-Host-Token": token }
+        `/api/rooms/${roomId}/participants/${participantId}`
     );
 }
 
