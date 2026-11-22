@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, HTTPException
 from schemas import ParticipantCreate, Participant
 from db import rooms_db, participants_db, category_votes_db, place_votes_db, db_lock
 
@@ -39,13 +39,10 @@ def get_participants(room_id: str):
 
 
 @router.delete("/{participant_id}")
-def delete_participant(room_id: str, participant_id: str, x_host_token: str = Header(default="")):
-    """방장만 참여자의 출발지 정보를 삭제할 수 있다."""
+def delete_participant(room_id: str, participant_id: str):
+    """참여자의 출발지 정보를 삭제할 수 있다."""
     if room_id not in rooms_db:
         raise HTTPException(status_code=404, detail="존재하지 않는 방입니다.")
-
-    if not x_host_token or x_host_token != rooms_db[room_id].host_token:
-        raise HTTPException(status_code=403, detail="방장만 참여자를 삭제할 수 있습니다.")
 
     with db_lock:
         current_list = participants_db.get(room_id, [])
