@@ -10,7 +10,7 @@ from db import (
 
 router = APIRouter(prefix="/api/rooms/{room_id}", tags=["Votes"])
 
-ALLOWED = {"cafe", "restaurant", "station"}
+ALLOWED = {"cafe", "restaurant", "station_terminal"}
 
 
 class CategoryVote(BaseModel):
