@@ -279,10 +279,11 @@
             markers = [];
 
             const bounds = new kakao.maps.LatLngBounds();
+            let midCoord = null;
 
             // 1. 중간지점 표시 (눈에 잘 띄는 커스텀 오버레이 + 검색 반경 원)
             if (midpoint && Number.isFinite(midpoint.latitude) && Number.isFinite(midpoint.longitude)) {
-                const midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
+                midCoord = new kakao.maps.LatLng(midpoint.latitude, midpoint.longitude);
 
                 if (currentRadius > 0) {
                     const radiusCircle = new kakao.maps.Circle({
@@ -341,6 +342,20 @@
                 const c = PALETTE[i % PALETTE.length];
                 const coord = new kakao.maps.LatLng(lat, lng);
 
+                // 출발지에서 중간지점까지 같은 색 점선으로 이어 줌
+                if (midCoord) {
+                    const line = new kakao.maps.Polyline({
+                        map: map,
+                        path: [coord, midCoord],
+                        strokeWeight: 3,
+                        strokeColor: c.border,
+                        strokeOpacity: 0.75,
+                        strokeStyle: 'dash',
+                        zIndex: 3,
+                    });
+                    markers.push(line);
+                }
+
                 const el = document.createElement('div');
                 el.className = 'person-overlay';
                 el.innerHTML =
@@ -356,17 +371,32 @@
                     zIndex: 9,
                 });
                 markers.push(overlay);
-                bounds.extend(coord);
+
+                // 너무 멀리 떨어진 참여자까지 영역에 넣으면 지도가 전국 단위로 축소되므로,
+                // 중간지점 주변 참여자만 화면 맞춤 대상에 포함함
+                if (midCoord) {
+                    const nearLimit = Math.max(currentRadius, 1000) * 2.5 / 90000;
+                    if (Math.abs(lat - midpoint.latitude) <= nearLimit && Math.abs(lng - midpoint.longitude) <= nearLimit) {
+                        bounds.extend(coord);
+                    }
+                } else {
+                    bounds.extend(coord);
+                }
             });
 
             if (fitBounds && markers.length > 0) {
                 // 점이 하나뿐이면 영역이 0이 되어 지도가 국가 단위로 축소되므로 최소 여백을 줍니다.
-                if (midpoint && Number.isFinite(midpoint.latitude) && Number.isFinite(midpoint.longitude)) {
-                    const pad = 0.005;
+                if (midCoord) {
+                    const pad = Math.max(currentRadius, 500) / 111320;
                     bounds.extend(new kakao.maps.LatLng(midpoint.latitude + pad, midpoint.longitude + pad));
                     bounds.extend(new kakao.maps.LatLng(midpoint.latitude - pad, midpoint.longitude - pad));
                 }
                 map.setBounds(bounds);
+                // 참여자가 멀리 있어도 중간지점 주변이 보이도록 축소 한도를 둡니다.
+                if (midCoord && map.getLevel() > 9) {
+                    map.setLevel(9);
+                    map.setCenter(midCoord);
+                }
             }
         }
 

@@ -17,6 +17,9 @@ CATEGORY_LABEL = {
     "station_terminal": "지하철역",
 }
 
+# 예전 페이지(캐시)나 팀원 프론트가 보내는 station 값을 station_terminal로 받아줌
+CATEGORY_ALIASES = {"station": "station_terminal"}
+
 # 조사 처리용 (카페가 / 식당이 / 지하철역이)
 CATEGORY_PARTICLE = {
     "cafe": "가",
@@ -42,6 +45,8 @@ async def get_result(
     if len(people) < 2:
         raise HTTPException(status_code=400, detail="참여자가 2명 이상이어야 중간지점을 계산할 수 있습니다.")
 
+    if category not in CATEGORY_CODE:
+        category = CATEGORY_ALIASES.get(category, category)
     if category not in CATEGORY_CODE:
         raise HTTPException(status_code=400, detail="cafe/restaurant/station_terminal 중 하나여야 합니다.")
 

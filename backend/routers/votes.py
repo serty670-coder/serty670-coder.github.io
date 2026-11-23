@@ -12,6 +12,13 @@ router = APIRouter(prefix="/api/rooms/{room_id}", tags=["Votes"])
 
 ALLOWED = {"cafe", "restaurant", "station_terminal"}
 
+# 예전 페이지(캐시)나 팀원 프론트가 보내는 station 값을 station_terminal로 받아줌
+CATEGORY_ALIASES = {"station": "station_terminal"}
+
+
+def _normalize_category(value: str) -> str:
+    return CATEGORY_ALIASES.get(value, value)
+
 
 class CategoryVote(BaseModel):
     participant_id: str
@@ -60,11 +67,12 @@ def _tally(votes: dict) -> dict:
 @router.post("/category-votes")
 def vote_category(room_id: str, data: CategoryVote):
     _check(room_id)
-    if data.category not in ALLOWED:
+    category = _normalize_category(data.category)
+    if category not in ALLOWED:
         raise HTTPException(status_code=400, detail="cafe/restaurant/station_terminal 중 하나여야 합니다.")
     _check_participant(room_id, data.participant_id)
     with db_lock:
-        category_votes_db.setdefault(room_id, {})[data.participant_id] = data.category
+        category_votes_db.setdefault(room_id, {})[data.participant_id] = category
         return _tally(category_votes_db[room_id])
 
 
